@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Score Calculator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="lang"><button data-lang="KR">KR</button><button data-lang="JP">JP</button></div>
+  <h1 data-i="title"></h1>
+</header>
+
+<nav class="bar">
+  <div class="team blue" id="blue"></div>
+  <div class="vs"><span id="tb">0</span><em>vs</em><span id="tr">0</span></div>
+  <div class="team red" id="red"></div>
+</nav>
+
+<section class="ops">
+  <div class="cur"><span data-i="ops"></span><button id="oreset" data-i="reset"></button></div>
+  <div class="olist" id="oplist"></div>
+</section>
+
+<main>
+  <div class="cur"><span id="cur"></span><button id="reset" data-i="reset"></button></div>
+  <table id="board">
+    <thead><tr><th data-i="rule"></th><th data-i="btn"></th><th data-i="pts"></th></tr></thead>
+    <tbody></tbody>
+    <tfoot><tr><td colspan="2" data-i="sum"></td><td id="sum">0</td></tr></tfoot>
+  </table>
+</main>
+
+<section class="preset">
+  <h2 data-i="preset"></h2>
+  <div id="plist">
+    <div class="prow"><span id="pn"></span><input id="c1" spellcheck="false" autocomplete="off"><button data-g="1" data-i="issue"></button><button data-a="1" data-i="apply"></button></div>
+    <div class="prow all"><span data-i="all"></span><input id="call" spellcheck="false" autocomplete="off"><button data-g="all" data-i="issue"></button><button data-a="all" data-i="apply"></button></div>
+  </div>
+  <p id="msg"></p>
+</section>
+
+<div class="modal" id="modal" hidden>
+  <div class="box">
+    <div class="mhead"><input id="q" autocomplete="off"><button id="mclose">✕</button></div>
+    <div class="grid" id="pick"></div>
+  </div>
+</div>
+
+<script src="operators.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
