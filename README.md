@@ -11,7 +11,7 @@ image/operators/avatar_char_{F열}_{G열}.png
 `image/` 폴더는 직접 넣어야 합니다.
 
 ## 오퍼레이터 추가
-`operators.js`의 `OPS` 배열에 `[id, EN, JP, KR, "F열_G열"]` 추가 (id는 999 이하). 플레이어당 오퍼레이터는 최대 99명.
+`operators.js`의 `OPS` 배열에 `[id, EN, JP, KR, "F열_G열"]` 추가 (id는 999 이하). 플레이어당 최대 20명, 중복 불가.
 
 ## 규칙 추가
 `script.js` 상단 `RULES` 배열 참조. 규칙 구성이 바뀌면 기존 프리셋 코드는 호환되지 않습니다.

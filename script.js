@@ -1,12 +1,13 @@
 // ===== 규칙 정의 =====
 // 일반: r(KR, JP, [버튼 단계], [단계 점수])
 // 선택형(▼ 메뉴): { g: [r(...), ...] }
-// 최종 계산형: 점수에 함수 b => ... (b = 나머지 규칙 합)
-// 숫자 입력형: { ...r(...), N: 1 } / 감점 구역 시작: d: 1
+// 함수형 점수: (b, i) => ...  (b = 일반 규칙 합, i = 플레이어) / F: 1 = 최종 계산(맨 마지막)
+// 숫자 입력형: { ...r(...), ...num(단위, 단위당 점수) } / 버튼 없음(규칙칸·버튼칸 병합): M: 1 / 감점 구역 시작: d: 1
 const IMG = n => `<img src="image/relic/${n}.webp" alt="${n}">`;
 const XO = ['X', 'O'];
 const R5 = IMG('rogue_5_relic_final_5'), R2 = IMG('rogue_5_relic_final_2'), R1 = IMG('rogue_5_relic_final_1');
 const r = (KR, JP, l, p) => ({ t: { KR, JP }, l, p });
+const num = (step, per) => ({ l: Array.from({ length: 100 }, (_, i) => i * step), p: Array.from({ length: 100 }, (_, i) => i * per), N: step });
 
 const RULES = [
   r('최종 인게임 점수가 500점 이상 / 1000점 이상 / 1500점 이상 / 2000점 이상',
@@ -32,49 +33,49 @@ const RULES = [
       ['【절변: 짐승들을 부린다】로', '【止変: 群獣を役す】で', [0, 10, 13, 17]]
     ].map(([k, j, p]) => r(`5엔딩 보스전을 ${k} 클리어`, `End5のボス戦を ${j}クリア`, [...XO, R2, R1], p))
   ] },
-  r('각 팀별 마지막 주자의 BP 총합 5점마다', '各チームの最終走者のBP合計5点ごとに', XO, [0, b => Math.max(0, Math.floor(b / 5))]),
+  { ...r('각 팀별 마지막 주자의 BP 총합 5점마다', '各チームの最終走者のBP合計5点ごとに', XO, [0, b => Math.max(0, Math.floor(b / 5))]), F: 1 },
   r('‘명적통’ 획득 시', '「鏑矢の吹筒」を獲得', XO, [0, 1]),
   r('‘치엔창 꾸러미’ 획득 시', '「一束の銭器鬼」を獲得', XO, [0, 1]),
   // ===== 감점 =====
   { ...r('5엔딩 클리어 실패', 'End5のクリアに失敗',
       ['X', 'O', { KR: '【절변: 짐승들을 부린다】', JP: '【止変:群獣を役す】' }], [0, -3, -1]), d: 1 },
+  { ...r('플레이 시간이 n시간을 넘길 경우 (0.5시간마다)', 'プレイ時間が n時間 を超えた場合 (0.5時間ごと)'), ...num(0.5, -2) },
   ...[
-    ['플레이 시간이 3시간을 넘길 경우', 'プレイ時間が3時間を超えた場合', -2],
     ['【파‘쉐이’진사】혹은 【뒤바뀔 운명】전투에 진입', '【歳破りし陣を祀る】または【天命将に易えんとす】の戦闘に進入', -4],
     ['‘불사’ 유물 미보유', '「不赦」秘宝未保有', -2],
     ['‘불식’ 유물 미보유', '「不息」秘宝未保有', -2]
   ].map(([k, j, p]) => r(k, j, XO, [0, p])),
-  { ...r('상점에서 오리지늄각뿔 인출 한도 n회 초과', '商店での源石錐の出金上限 n回 を超過',
-      Array.from({ length: 100 }, (_, i) => i), Array.from({ length: 100 }, (_, i) => -i)), N: 1 }
+  { ...r('상점에서 오리지늄각뿔 인출 한도 n회 초과', '商店での源石錐の出金上限 n回 を超過'), ...num(1, -1) },
+  { ...r('한 팀에서 같은 오퍼레이터를 3회 이상 모집', '1チームで同じオペレーターを3回以上招集', [''], [(b, i) => dup(i)]), M: 1 }
 ];
 
 const T = {
-  KR: { title: '점수 계산기', rule: '규칙', btn: '버튼', pts: '점수', sum: '합계', reset: '초기화', minus: '감점', ops: '오퍼레이터',
+  KR: { title: '점수 계산기', rule: '규칙', btn: '버튼', pts: '점수', sum: '합계', reset: '초기화', minus: '감점', ops: '오퍼레이터', photo: '사진', shot: '이미지를 저장하고 프리셋 코드를 복사했습니다.', shotErr: '이미지 저장에 실패했습니다.',
         preset: '프리셋 코드', all: '전체', issue: '발급', apply: '적용', search: '이름 검색 (KR / JP / EN)',
         issued: '코드를 발급했습니다. (클립보드 복사)', applied: '코드를 적용했습니다.', invalid: '잘못된 코드입니다.' },
-  JP: { title: 'スコア計算機', rule: 'ルール', btn: 'ボタン', pts: 'スコア', sum: '合計', reset: 'リセット', minus: '減点', ops: 'オペレーター',
+  JP: { title: 'スコア計算機', rule: 'ルール', btn: 'ボタン', pts: 'スコア', sum: '合計', reset: 'リセット', minus: '減点', ops: 'オペレーター', photo: '写真', shot: '画像を保存し、プリセットコードをコピーしました。', shotErr: '画像の保存に失敗しました。',
         preset: 'プリセットコード', all: '全体', issue: '発行', apply: '適用', search: '名前で検索 (KR / JP / EN)',
         issued: 'コードを発行しました。(クリップボードにコピー)', applied: 'コードを適用しました。', invalid: '無効なコードです。' }
 };
 
 // ===== 상태 =====
-// S[i] = 플레이어 i의 규칙값 배열, O[i] = 플레이어 i의 오퍼레이터 id 배열(가변 길이)
+// S[i] = 플레이어 i의 규칙값 배열, O[i] = 플레이어 i의 오퍼레이터 id 배열(가변, 중복 불가)
 const $ = s => document.querySelector(s);
-const ORAD = 1000, CRAD = 100;                   // 오퍼레이터 id 최대 999, 플레이어당 최대 99명
+const ORAD = 1000, MAXO = 20, CRAD = MAXO + 1;   // 오퍼레이터 id 최대 999, 플레이어당 최대 20명
 const G = RULES.map(x => x.g || [x]);
 const RAD = G.map(g => g.reduce((s, x) => s + x.l.length, 0));
 const split = (k, v) => { let i = 0; while (v >= G[k][i].l.length) v -= G[k][i++].l.length; return [i, v]; };
 const join = (k, i, v) => G[k].slice(0, i).reduce((s, x) => s + x.l.length, 0) + v;
 const blank = () => RAD.map(() => 0);
 const ok = p => Array.isArray(p) && p.length === RAD.length && p.every((v, k) => Number.isInteger(v) && v >= 0 && v < RAD[k]);
+const okO = a => Array.isArray(a) && a.length <= MAXO && new Set(a).size === a.length && a.every(v => Number.isInteger(v) && v > 0 && v < ORAD);
 const name = i => (i < 5 ? 'KR' : 'JP') + (i % 5 + 1);
 const OP = Object.fromEntries(OPS.map(o => [o[0], o]));
 const opImg = o => `image/operators/avatar_char_${o[4]}.png`;
 const opName = o => o[lang === 'KR' ? 3 : 2];
 
-const okO = a => Array.isArray(a) && a.length < CRAD && a.every(v => Number.isInteger(v) && v > 0 && v < ORAD);
 let S, O;
-try { ({ S, O } = JSON.parse(localStorage.sc2)); if (!(S.length === 10 && S.every(ok) && O.length === 10 && O.every(okO))) throw 0; }
+try { ({ S, O } = JSON.parse(localStorage.sc3)); if (!(S.length === 10 && S.every(ok) && O.length === 10 && O.every(okO))) throw 0; }
 catch (e) { S = Array.from({ length: 10 }, blank); O = Array.from({ length: 10 }, () => []); }
 let cur = 0, lang = localStorage.lang === 'JP' ? 'JP' : 'KR', msg = '', err = false, open = -1;
 
@@ -108,11 +109,25 @@ function load(a, str) {
 
 // ===== 점수 =====
 const raw = (k, v) => { const [i, s] = split(k, v); return G[k][i].p[s]; };
-const base = i => S[i].reduce((s, v, k) => { const x = raw(k, v); return typeof x === 'function' ? s : s + x; }, 0);
-const pt = (i, k) => { const x = raw(k, S[i][k]); return typeof x === 'function' ? x(base(i)) : x; };
+const pt = (i, k) => { const x = raw(k, S[i][k]); return typeof x === 'function' ? x(G[k][0].F ? base(i) : 0, i) : x; };
+const base = i => S[i].reduce((s, v, k) => G[k][0].F ? s : s + pt(i, k), 0);
 const score = i => S[i].reduce((s, v, k) => s + pt(i, k), 0);
 const total = t => [0, 1, 2, 3, 4].reduce((s, j) => s + score(t * 5 + j), 0);
 const lb = v => typeof v === 'object' ? v[lang] : v;
+
+// ===== 팀 중복 모집 감점 =====
+// 팀 내 1→5 순서로 3번째 이후 등장한 오퍼레이터: 주황(-3), 그중 RED 목록이면 빨강(-6)
+const RED = new Set([379, 383, 407, 406, 376, 397, 417, 420, 273]);
+function marks(i) {
+  const t = i < 5 ? 0 : 5, cnt = {};
+  let out = [];
+  for (let p = t; p < t + 5; p++) {
+    const m = O[p].map(id => (cnt[id] = (cnt[id] || 0) + 1) >= 3 ? (RED.has(id) ? 'r' : 'o') : '');
+    if (p === i) out = m;
+  }
+  return out;
+}
+const dup = i => marks(i).reduce((s, m) => s + (m === 'r' ? -6 : m === 'o' ? -3 : 0), 0);
 
 // ===== 오퍼레이터 검색 =====
 // 정규화: 소문자, 히라가나→가타카나, 공백·기호 제거
@@ -143,7 +158,7 @@ function search(q) {
 }
 function showPick() {
   $('#pick').innerHTML = search($('#q').value).map(o =>
-    `<button data-op="${o[0]}"><img src="${opImg(o)}" alt="" loading="lazy">${opName(o)}</button>`).join('');
+    `<button data-op="${o[0]}"${O[cur].includes(o[0]) ? ' disabled' : ''}><img src="${opImg(o)}" alt="" loading="lazy">${opName(o)}</button>`).join('');
 }
 
 // ===== 렌더링 =====
@@ -153,7 +168,7 @@ function showPick() {
 
 function render() {
   const L = T[lang], c = cur < 5 ? 'b' : 'r';
-  localStorage.sc2 = JSON.stringify({ S, O }); localStorage.lang = lang;
+  localStorage.sc3 = JSON.stringify({ S, O }); localStorage.lang = lang;
   document.documentElement.lang = lang === 'KR' ? 'ko' : 'ja';
   document.querySelectorAll('[data-i]').forEach(e => e.textContent = L[e.dataset.i]);
   document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
@@ -168,18 +183,20 @@ function render() {
   $('#pn').textContent = name(cur); $('#pn').className = c;
   $('#q').placeholder = L.search;
 
+  const mk = marks(cur);
   $('#oplist').innerHTML = O[cur].map((id, j) => {
     const o = OP[id] || [id, '', '?', '?', ''];
-    return `<div class="slot has" title="${opName(o)}"><img src="${opImg(o)}" alt="${opName(o)}"><button class="del" data-del="${j}">🗑</button></div>`;
-  }).join('') + (O[cur].length < CRAD - 1 ? '<button class="slot" data-s="1">+</button>' : '');
+    return `<div class="slot has ${mk[j]}" title="${opName(o)}"><img src="${opImg(o)}" alt="${opName(o)}"><button class="del" data-del="${j}">🗑</button></div>`;
+  }).join('') + (O[cur].length < MAXO ? '<button class="slot" data-s="1">+</button>' : '');
 
   $('#board tbody').innerHTML = G.map((g, k) => {
     const [i, s] = split(k, S[cur][k]), x = g[i], p = pt(cur, k);
     const dd = g.length > 1 ? `<button class="dd" data-o="${k}">▼</button>` : '';
     const menu = open === k ? `<div class="menu">${g.map((y, j) => `<button data-m="${k},${j}" class="${j === i ? 'on' : ''}">${y.t[lang]}</button>`).join('')}</div>` : '';
-    const btn = x.N ? `<input type="number" min="0" max="99" data-n="${k}" value="${s}">` : `<button data-k="${k}">${lb(x.l[s])}</button>`;
+    const lab = x.l[s], btn = x.N ? `<input type="number" min="0" max="${99 * x.N}" step="${x.N}" data-n="${k}" value="${lab}">`
+      : `<button data-k="${k}"${typeof lab === 'object' ? ' class="sm"' : ''}>${lb(lab)}</button>`;
     return (x.d ? `<tr class="sec"><td colspan="3">${L.minus}</td></tr>` : '') +
-      `<tr><td class="rule">${dd}${x.t[lang]}${menu}</td><td class="lv">${btn}</td>` +
+      `<tr><td class="rule"${x.M ? ' colspan="2"' : ''}>${dd}${x.t[lang]}${menu}</td>${x.M ? '' : `<td class="lv">${btn}</td>`}` +
       `<td class="pt${p > 0 ? ' on' : p < 0 ? ' neg' : ''}">${p > 0 ? '+' + p : p}</td></tr>`;
   }).join('');
   $('#sum').textContent = score(cur);
@@ -193,7 +210,7 @@ document.addEventListener('click', e => {
   const d = e.target.closest('button')?.dataset, was = open;
   open = -1;
   if (!d) { if (was > -1) render(); return; }
-  if (d.op) { O[cur].push(+d.op); closePick(); }
+  if (d.op) { if (!O[cur].includes(+d.op) && O[cur].length < MAXO) O[cur].push(+d.op); closePick(); }
   else if (d.s) { $('#q').value = ''; showPick(); $('#modal').hidden = false; $('#q').focus(); return; }
   else if (d.del) O[cur].splice(+d.del, 1);
   else if (d.lang) lang = d.lang;
@@ -211,13 +228,36 @@ document.addEventListener('click', e => {
   render();
 });
 $('#q').addEventListener('input', showPick);
+
+// ===== 사진: 오퍼레이터+점수판 이미지 저장 & 현재 플레이어 프리셋 코드 복사 =====
+const H2C = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+const need = src => window.html2canvas ? Promise.resolve() : new Promise((ok, no) => {
+  const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s);
+});
+$('#shot').addEventListener('click', async () => {
+  const b = $('#shot'), c = code(0), n = name(cur);
+  navigator.clipboard?.writeText(c).catch(() => {});     // 클릭 직후 복사(브라우저 권한 유지)
+  $('#c1').value = c; b.disabled = true;
+  try {
+    await need(H2C);
+    const cv = await html2canvas($('#cap'), {
+      backgroundColor: '#fff', scale: 2,
+      onclone: d => d.querySelectorAll('#cap .del, #cap .tools, #cap #reset, #cap .slot:not(.has), #cap .dd')
+        .forEach(e => e.style.display = 'none')
+    });
+    const a = document.createElement('a');
+    a.download = `${n}_${c}.png`; a.href = cv.toDataURL('image/png'); a.click();
+    msg = 'shot'; err = false;
+  } catch (e) { msg = 'shotErr'; err = true; }
+  b.disabled = false; render();
+});
 document.addEventListener('change', e => {
   const k = e.target.dataset.n; if (k === undefined) return;
-  S[cur][k] = Math.min(99, Math.max(0, parseInt(e.target.value) || 0)); render();
+  S[cur][k] = Math.min(99, Math.max(0, Math.round((parseFloat(e.target.value) || 0) / G[k][0].N))); render();
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closePick();
-  if (e.key === 'Enter' && e.target.id === 'q') document.querySelector('#pick button')?.click();
+  if (e.key === 'Enter' && e.target.id === 'q') document.querySelector('#pick button:not(:disabled)')?.click();
   else if (e.key === 'Enter' && e.target.id?.startsWith('c')) document.querySelector(`[data-a="${e.target.id.slice(1)}"]`).click();
 });
 
