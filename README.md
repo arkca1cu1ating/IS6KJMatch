@@ -13,5 +13,8 @@ image/operators/avatar_char_{F열}_{G열}.png
 ## 오퍼레이터 추가
 `operators.js`의 `OPS` 배열에 `[id, EN, JP, KR, "F열_G열"]` 추가 (id는 999 이하). 플레이어당 최대 20명, 중복 불가.
 
+## 룰북 링크
+`script.js`의 `RULEBOOK` 객체에서 언어별 주소 수정.
+
 ## 규칙 추가
 `script.js` 상단 `RULES` 배열 참조. 규칙 구성이 바뀌면 기존 프리셋 코드는 호환되지 않습니다.

@@ -49,11 +49,19 @@ const RULES = [
   { ...r('한 팀에서 같은 오퍼레이터를 3회 이상 모집', '1チームで同じオペレーターを3回以上招集', [''], [(b, i) => dup(i)]), M: 1 }
 ];
 
+// 룰북 링크 (언어별)
+const RULEBOOK = {
+  KR: 'https://docs.google.com/document/d/1jze_jRd6LDmx06BoQaNWgxG4c8n1tm_md3YhQF2U8fg/edit?usp=sharing',
+  JP: 'https://docs.google.com/document/d/1CYiXh3ed83-EWEkdp2MBI1DpYiLCvZVP7U1iCnxrxYE/edit?usp=sharing'
+};
+
 const T = {
-  KR: { title: '점수 계산기', rule: '규칙', btn: '버튼', pts: '점수', sum: '합계', reset: '초기화', minus: '감점', ops: '오퍼레이터', photo: '사진', shot: '이미지를 저장하고 프리셋 코드를 복사했습니다.', shotErr: '이미지 저장에 실패했습니다.',
+  KR: { title: '점수 계산기', rule: '규칙', btn: '버튼', pts: '점수', sum: '합계', reset: '초기화', minus: '감점', ops: '오퍼레이터', rulebook: '룰북',
+        photo: '사진', shot: '이미지를 저장하고 프리셋 코드를 복사했습니다.', shotErr: '이미지 저장에 실패했습니다.',
         preset: '프리셋 코드', all: '전체', issue: '발급', apply: '적용', search: '이름 검색 (KR / JP / EN)',
         issued: '코드를 발급했습니다. (클립보드 복사)', applied: '코드를 적용했습니다.', invalid: '잘못된 코드입니다.' },
-  JP: { title: 'スコア計算機', rule: 'ルール', btn: 'ボタン', pts: 'スコア', sum: '合計', reset: 'リセット', minus: '減点', ops: 'オペレーター', photo: '写真', shot: '画像を保存し、プリセットコードをコピーしました。', shotErr: '画像の保存に失敗しました。',
+  JP: { title: 'スコア計算機', rule: 'ルール', btn: 'ボタン', pts: 'スコア', sum: '合計', reset: 'リセット', minus: '減点', ops: 'オペレーター', rulebook: 'ルールブック',
+        photo: '写真', shot: '画像を保存し、プリセットコードをコピーしました。', shotErr: '画像の保存に失敗しました。',
         preset: 'プリセットコード', all: '全体', issue: '発行', apply: '適用', search: '名前で検索 (KR / JP / EN)',
         issued: 'コードを発行しました。(クリップボードにコピー)', applied: 'コードを適用しました。', invalid: '無効なコードです。' }
 };
@@ -172,6 +180,7 @@ function render() {
   document.documentElement.lang = lang === 'KR' ? 'ko' : 'ja';
   document.querySelectorAll('[data-i]').forEach(e => e.textContent = L[e.dataset.i]);
   document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+  $('#rb').href = RULEBOOK[lang]; $('#rb').title = L.rulebook;
   document.querySelectorAll('[data-p]').forEach(b => {
     b.classList.toggle('on', +b.dataset.p === cur);
     b.querySelector('b').textContent = score(+b.dataset.p);
@@ -193,7 +202,7 @@ function render() {
     const [i, s] = split(k, S[cur][k]), x = g[i], p = pt(cur, k);
     const dd = g.length > 1 ? `<button class="dd" data-o="${k}">▼</button>` : '';
     const menu = open === k ? `<div class="menu">${g.map((y, j) => `<button data-m="${k},${j}" class="${j === i ? 'on' : ''}">${y.t[lang]}</button>`).join('')}</div>` : '';
-    const lab = x.l[s], btn = x.N ? `<input type="number" min="0" max="${99 * x.N}" step="${x.N}" data-n="${k}" value="${lab}">`
+    const lab = x.l[s], btn = x.N ? `<input type="number" inputmode="decimal" min="0" max="${99 * x.N}" step="${x.N}" data-n="${k}" value="${lab}">`
       : `<button data-k="${k}"${typeof lab === 'object' ? ' class="sm"' : ''}>${lb(lab)}</button>`;
     return (x.d ? `<tr class="sec"><td colspan="3">${L.minus}</td></tr>` : '') +
       `<tr><td class="rule"${x.M ? ' colspan="2"' : ''}>${dd}${x.t[lang]}${menu}</td>${x.M ? '' : `<td class="lv">${btn}</td>`}` +
@@ -230,7 +239,9 @@ document.addEventListener('click', e => {
 $('#q').addEventListener('input', showPick);
 
 // ===== 사진: 오퍼레이터+점수판 이미지 저장 & 현재 플레이어 프리셋 코드 복사 =====
+// 기기와 상관없이 항상 PC 화면 기준(가로 SHOT_W px)으로 렌더링해서 저장
 const H2C = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+const SHOT_W = 1200;
 const need = src => window.html2canvas ? Promise.resolve() : new Promise((ok, no) => {
   const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s);
 });
@@ -241,9 +252,18 @@ $('#shot').addEventListener('click', async () => {
   try {
     await need(H2C);
     const cv = await html2canvas($('#cap'), {
-      backgroundColor: '#fff', scale: 2,
-      onclone: d => d.querySelectorAll('#cap .del, #cap .tools, #cap #reset, #cap .slot:not(.has), #cap .dd')
-        .forEach(e => e.style.display = 'none')
+      backgroundColor: '#fff', scale: 2, scrollX: 0, scrollY: 0,
+      windowWidth: SHOT_W + 80, windowHeight: 1000,       // 미디어쿼리를 PC 기준으로 적용
+      onclone: d => {
+        const cap = d.querySelector('#cap');
+        d.documentElement.style.fontSize = '18px';
+        Object.assign(cap.style, { width: SHOT_W + 'px', maxWidth: 'none', margin: '0', boxShadow: 'none' });
+        cap.querySelectorAll('.del, .tools, #reset, .slot:not(.has), .dd').forEach(e => e.style.display = 'none');
+        // 숫자 입력칸 → 일반 텍스트 칸으로 교체 (캡처 시 세로 정렬 어긋남 방지)
+        cap.querySelectorAll('td.lv input').forEach(e => {
+          const v = d.createElement('div'); v.className = 'nv'; v.textContent = e.value; e.replaceWith(v);
+        });
+      }
     });
     const a = document.createElement('a');
     a.download = `${n}_${c}.png`; a.href = cv.toDataURL('image/png'); a.click();
@@ -251,6 +271,7 @@ $('#shot').addEventListener('click', async () => {
   } catch (e) { msg = 'shotErr'; err = true; }
   b.disabled = false; render();
 });
+
 document.addEventListener('change', e => {
   const k = e.target.dataset.n; if (k === undefined) return;
   S[cur][k] = Math.min(99, Math.max(0, Math.round((parseFloat(e.target.value) || 0) / G[k][0].N))); render();
